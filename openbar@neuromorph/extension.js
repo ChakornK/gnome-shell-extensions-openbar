@@ -67,7 +67,7 @@ class ConnectManager{
             sig: signal
         });
         // Remove obj on destroy except following that don't have destroy signal
-        if(!(obj instanceof Gio.Settings || obj instanceof LayoutManager.LayoutManager || obj instanceof Meta.WorkspaceManager | obj instanceof Meta.Display)) {
+        if(!(obj instanceof Gio.Settings || obj instanceof LayoutManager.LayoutManager || obj instanceof Meta.WorkspaceManager || obj instanceof Meta.Display)) {
             obj.connect('destroy', () => {
                 this.removeObject(obj)
             });
@@ -449,33 +449,29 @@ export default class Openbar extends Extension {
             this.applyMenuClass(btn.child.menu._boxPointer, add);
         }
 
-                if(btn.child.menu?.constructor.name == "PanelGrid") {
-                        for(const panel of btn.child.menu._get_panels()) {
-                            this.applyBoxStyles(panel, add);
-                        }
-                    }
-                    // general case
-                    else if(btn.child.menu?.box) {
-                        this.applyBoxStyles(btn.child.menu.box, add);
-                    }
+        if(btn.child.menu?.constructor.name == "PanelGrid") {
+            for(const panel of btn.child.menu._get_panels()) {
+                this.applyBoxStyles(panel, add);
+            }
+        }
+        else if(btn.child.menu?.box) {
+            this.applyBoxStyles(btn.child.menu.box, add);
+        }
 
-                    // special case for Arc Menu, because it removes default menu and creates its own menu
-                    if(btn.child.constructor.name === 'ArcMenuMenuButton') {
-                        let menu = btn.child.arcMenu;
-                        this.applyMenuClass(menu, add);
-                        if(menu.box)
-                            this.applyBoxStyles(menu.box, add);
+        if(btn.child.constructor.name === 'ArcMenuMenuButton') {
+            let menu = btn.child.arcMenu;
+            this.applyMenuClass(menu, add);
+            if(menu.box)
+                this.applyBoxStyles(menu.box, add);
 
-                        let ctxMenu = btn.child.arcMenuContextMenu;
-                        this.applyMenuClass(ctxMenu, add);
-                        if(ctxMenu.box)
-                            this.applyBoxStyles(ctxMenu.box, add);
-                    }
+            let ctxMenu = btn.child.arcMenuContextMenu;
+            this.applyMenuClass(ctxMenu, add);
+            if(ctxMenu.box)
+                this.applyBoxStyles(ctxMenu.box, add);
+        }
 
-                        // DateMenu: Notifications (messages and media), DND and Clear buttons
-                        // Calendar Grid, Events, World Clock, Weather
-                        if(btn.child.constructor.name === 'DateMenuButton') {
-        this.applyDateMenuStyles(btn.child, add);
+        if(btn.child.constructor.name === 'DateMenuButton') {
+            this.applyDateMenuStyles(btn.child, add);
         }
     }
 
