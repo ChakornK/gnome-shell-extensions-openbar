@@ -1664,14 +1664,15 @@ export default class Openbar extends Extension {
         this._injections["_rebuildCalendar"] = this._injectToFunction(
             Main.panel.statusArea.dateMenu._calendar,
             "_rebuildCalendar",
-            function () {
-                if(!obar._settings) {
-                    return;
-                }
-                let menustyle = obar._settings.get_boolean('menustyle');
-                if(menustyle) {
-                    obar.applyCalendarGridStyle(this, menustyle);
-        }
+          function () {
+            if (!obar._settings) {
+              return;
+            }
+            let menustyle = obar._settings.get_boolean('menustyle');
+            if (menustyle) {
+              obar.applyCalendarGridStyle(this, menustyle);
+            }
+          }
     );
     }
     catch(e) {
