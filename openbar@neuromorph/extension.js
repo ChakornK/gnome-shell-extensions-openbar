@@ -464,64 +464,130 @@ export default class Openbar extends Extension {
                             this.applyBoxStyles(ctxMenu.box, add);
                     }
 
-                    // DateMenu: Notifications (messages and media), DND and Clear buttons
-                    //           Calendar Grid, Events, World Clock, Weather
-                    if(btn.child.constructor.name === 'DateMenuButton') {
-                        const bin = btn.child.menu.box.get_child_at_index(0); // CalendarArea
-                        const hbox = bin.get_child_at_index(0); // hbox with left and right sections
-
-                        const msgList = hbox.get_child_at_index(0); // Left Pane/Section with notifications etc
-                        this.applyMenuClass(msgList, add);
-                        const placeholder = msgList.get_child_at_index(0); // placeholder for 'No Notifications'
-                        this.applyMenuClass(placeholder, add);
-                        const msgbox = msgList.get_child_at_index(1);
-                        const msgScroll = msgbox.get_child_at_index(0);
-                        const sectionList = msgScroll.child;
-                        if(add) {
-                            this._connections.connect(sectionList, this.addedSignal, (container, actor) => {
-                                // console.log('section added: ', actor.constructor.name);
-                                this.applySectionStyles(sectionList, add);
-                            });
+                        // DateMenu: Notifications (messages and media), DND and Clear buttons
+                        // Calendar Grid, Events, World Clock, Weather
+                        if(btn.child.constructor.name === 'DateMenuButton') {
+                            this.applyDateMenuStyles(btn.child, add);
                         }
-                        else
-                            this._connections?.disconnect(sectionList, this.addedSignal);
-                        this.applySectionStyles(sectionList, add);
 
-                        const msgHbox = msgbox.get_child_at_index(1); // hbox at botton for dnd and clear buttons
-                        if(this.gnomeVersion < 49) {
-                            const dndBtn = msgHbox.get_child_at_index(1);
-                            this.applyMenuClass(dndBtn, add);
-                            const toggleSwitch = dndBtn.get_child_at_index(0);
-                            this.applyMenuClass(toggleSwitch, add);
-                            const clearBtn = msgHbox.get_child_at_index(2);
-                        }
-                        else {
-                            const clearBtn = msgHbox.get_child_at_index(1);
-                        }
-                        this.applyMenuClass(clearBtn, add);
-
-                        const vbox = hbox.get_child_at_index(1); // Right Pane/Section vbox for calendar etc
-                        vbox.get_children().forEach(item => {
-                            this.applyMenuClass(item, add);
-                            item.get_children().forEach(child => {
-                                this.applyMenuClass(child, add);
-                                child.get_children().forEach(subch => {
-                                    this.applyMenuClass(subch, add);
-                                })
-                            });
-
-                            if(item.constructor.name === 'Calendar') {
-                                this.applyCalendarGridStyle(item, add);
-                                this.calendarTimeoutId = setTimeout(() => {
-                                    this.applyCalendarGridStyle(item, add);
-                                    this.calendarTimeoutId = null;
-                                }, 250);
-                            }
-                        });
                     }
-
                 }
             }
+        }
+
+    applyDateMenuStyles(dateMenuBtn, add) {
+        try {
+            if(this.gnomeVersion >= 48) {
+                this._applyDateMenuStylesNew(dateMenuBtn, add);
+            } else {
+                this._applyDateMenuStylesOld(dateMenuBtn, add);
+            }
+        } catch(e) {
+            console.log('Openbar: Error styling DateMenu: ' + e);
+        }
+    }
+
+    _applyDateMenuStylesOld(dateMenuBtn, add) {
+        const bin = dateMenuBtn.menu.box.get_child_at_index(0);
+        const hbox = bin.get_child_at_index(0);
+
+        const msgList = hbox.get_child_at_index(0);
+        this.applyMenuClass(msgList, add);
+        const placeholder = msgList.get_child_at_index(0);
+        this.applyMenuClass(placeholder, add);
+        const msgbox = msgList.get_child_at_index(1);
+        const msgScroll = msgbox.get_child_at_index(0);
+        const sectionList = msgScroll.child;
+        if(add) {
+            this._connections.connect(sectionList, this.addedSignal, (container, actor) => {
+                this.applySectionStyles(sectionList, add);
+            });
+        }
+        else
+            this._connections?.disconnect(sectionList, this.addedSignal);
+        this.applySectionStyles(sectionList, add);
+
+        const msgHbox = msgbox.get_child_at_index(1);
+        if(this.gnomeVersion < 49) {
+            const dndBtn = msgHbox.get_child_at_index(1);
+            this.applyMenuClass(dndBtn, add);
+            const toggleSwitch = dndBtn.get_child_at_index(0);
+            this.applyMenuClass(toggleSwitch, add);
+            const clearBtn = msgHbox.get_child_at_index(2);
+        }
+        else {
+            const clearBtn = msgHbox.get_child_at_index(1);
+        }
+        this.applyMenuClass(clearBtn, add);
+
+        const vbox = hbox.get_child_at_index(1);
+        vbox.get_children().forEach(item => {
+            this.applyMenuClass(item, add);
+            item.get_children().forEach(child => {
+                this.applyMenuClass(child, add);
+                child.get_children().forEach(subch => {
+                    this.applyMenuClass(subch, add);
+                })
+            });
+
+            if(item.constructor.name === 'Calendar') {
+                this.applyCalendarGridStyle(item, add);
+                this.calendarTimeoutId = setTimeout(() => {
+                    this.applyCalendarGridStyle(item, add);
+                    this.calendarTimeoutId = null;
+                }, 250);
+            }
+        });
+    }
+
+    _applyDateMenuStylesNew(dateMenuBtn, add) {
+        const menuBox = dateMenuBtn.menu.box;
+        this.applyMenuClass(menuBox, add);
+
+        const calendarArea = menuBox.get_child_at_index(0);
+        if(!calendarArea) return;
+        this.applyMenuClass(calendarArea, add);
+
+        const hbox = calendarArea.get_child_at_index(0);
+        if(!hbox) return;
+
+        const leftPane = hbox.get_child_at_index(0);
+        if(leftPane) {
+            this.applyMenuClass(leftPane, add);
+            this._applyRecursiveMenuClass(leftPane, add, 3);
+        }
+
+        const rightPane = hbox.get_child_at_index(1);
+        if(rightPane) {
+            rightPane.get_children().forEach(item => {
+                this.applyMenuClass(item, add);
+                item.get_children().forEach(child => {
+                    this.applyMenuClass(child, add);
+                    child.get_children().forEach(subch => {
+                        this.applyMenuClass(subch, add);
+                    });
+                });
+
+                if(item.constructor.name === 'Calendar') {
+                    this.applyCalendarGridStyle(item, add);
+                    this.calendarTimeoutId = setTimeout(() => {
+                        this.applyCalendarGridStyle(item, add);
+                        this.calendarTimeoutId = null;
+                    }, 250);
+                }
+            });
+        }
+    }
+
+    _applyRecursiveMenuClass(widget, add, depth) {
+        if(depth <= 0 || !widget) return;
+        this.applyMenuClass(widget, add);
+        try {
+            const children = widget.get_children();
+            for(const child of children) {
+                this._applyRecursiveMenuClass(child, add, depth - 1);
+            }
+        } catch(e) {
         }
     }
 
