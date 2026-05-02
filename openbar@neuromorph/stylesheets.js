@@ -2028,12 +2028,31 @@ function getStylesheet(obar, Me) {
             padding: ${vPad}px ${hPad}px;
         }
 
-        #panel${openbarClass} .panel-button {
-            box-shadow: none;
-            ${btnStyle}
-            color: rgba(${fgred},${fggreen},${fgblue},${fgalpha});
-            ${unlockStyle}
-        }
+#panel${openbarClass} .panel-button {
+    box-shadow: none;
+    ${btnStyle}
+    color: rgba(${fgred},${fggreen},${fgblue},${fgalpha});
+    ${unlockStyle}
+}
+#panel${openbarClass} .panel-button .system-status-icon,
+#panel${openbarClass} .panel-button StIcon {
+    color: rgba(${fgred},${fggreen},${fgblue},${fgalpha}) !important;
+    -st-icon-style: symbolic;
+}
+#panel${openbarClass} .panel-button:hover .system-status-icon,
+#panel${openbarClass} .panel-button:focus .system-status-icon,
+#panel${openbarClass} .panel-button:active .system-status-icon,
+#panel${openbarClass} .panel-button:checked .system-status-icon,
+#panel${openbarClass} .panel-button:hover StIcon,
+#panel${openbarClass} .panel-button:focus StIcon,
+#panel${openbarClass} .panel-button:active StIcon,
+#panel${openbarClass} .panel-button:checked StIcon {
+    color: rgba(${hfgred},${hfggreen},${hfgblue},${fgalpha}) !important;
+}
+#panel${openbarClass}:windowmax .panel-button .system-status-icon,
+#panel${openbarClass}:windowmax .panel-button StIcon {
+    ${wmaxColorStyle}
+}
         #panel${openbarClass}:windowmax .panel-button {
             ${btnBgWMax? '': 'background-color: transparent !important;'}
             ${borderWMax? '': `border-color: rgba(${bgredwmax},${bggreenwmax},${bgbluewmax},${bgalphaWMax});`}
