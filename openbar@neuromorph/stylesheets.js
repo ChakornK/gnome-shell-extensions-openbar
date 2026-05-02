@@ -2053,6 +2053,16 @@ function getStylesheet(obar, Me) {
 #panel${openbarClass}:windowmax .panel-button StIcon {
     ${wmaxColorStyle}
 }
+#panel${openbarClass}:windowmax .panel-button:hover .system-status-icon,
+#panel${openbarClass}:windowmax .panel-button:focus .system-status-icon,
+#panel${openbarClass}:windowmax .panel-button:active .system-status-icon,
+#panel${openbarClass}:windowmax .panel-button:checked .system-status-icon,
+#panel${openbarClass}:windowmax .panel-button:hover StIcon,
+#panel${openbarClass}:windowmax .panel-button:focus StIcon,
+#panel${openbarClass}:windowmax .panel-button:active StIcon,
+#panel${openbarClass}:windowmax .panel-button:checked StIcon {
+    ${wmaxHoverStyle}
+}
         #panel${openbarClass}:windowmax .panel-button {
             ${btnBgWMax? '': 'background-color: transparent !important;'}
             ${borderWMax? '': `border-color: rgba(${bgredwmax},${bggreenwmax},${bgbluewmax},${bgalphaWMax});`}
