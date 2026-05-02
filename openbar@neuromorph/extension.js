@@ -1654,8 +1654,9 @@ export default class Openbar extends Extension {
                 this.onModeChange();
         }
 
-        // Update calendar style on Calendar rebuild through fn injection
-        const obar = this;
+    // Update calendar style on Calendar rebuild through fn injection
+    const obar = this;
+    try {
         this._injections["_rebuildCalendar"] = this._injectToFunction(
             Main.panel.statusArea.dateMenu._calendar,
             "_rebuildCalendar",
@@ -1666,11 +1667,14 @@ export default class Openbar extends Extension {
                 let menustyle = obar._settings.get_boolean('menustyle');
                 if(menustyle) {
                     obar.applyCalendarGridStyle(this, menustyle);
-                }
-            }
-        );
+        }
+    );
+    }
+    catch(e) {
+        console.log('Openbar: Error injecting _rebuildCalendar: ' + e);
+    }
 
-        // OpenBar runtime directory
+    // OpenBar runtime directory
         const userRunDir = GLib.get_user_runtime_dir();
         this.obarRunDir = Gio.File.new_for_path(`${userRunDir}/io.github.neuromorph.openbar`);
         this.obarAssetsDir = Gio.File.new_for_path(`${this.obarRunDir.get_path()}/assets`);
