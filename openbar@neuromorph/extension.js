@@ -410,23 +410,27 @@ export default class Openbar extends Extension {
     // Add/Remove openmenu class to Notifications and Media message lists
     // as well as to any other lists added by other extensions
     applySectionStyles(list, add) {
-        list.get_children().forEach((section, idx) => {
-            let msgList = section._list;
-            if(add && !this.msgListIds[idx]) {
-                this.msgListIds[idx] = msgList?.connect(this.addedSignal, (container, actor) => {
-                    this.applyMenuClass(actor.child, add);
+        try {
+            list.get_children().forEach((section, idx) => {
+                let msgList = section._list;
+                if(add && !this.msgListIds[idx]) {
+                    this.msgListIds[idx] = msgList?.connect(this.addedSignal, (container, actor) => {
+                        this.applyMenuClass(actor.child, add);
+                    });
+                    this.msgLists[idx] = msgList;
+                }
+                else if(!add && this.msgListIds[idx]) {
+                    msgList?.disconnect(this.msgListIds[idx]);
+                    this.msgListIds[idx] = null;
+                    this.msgLists[idx] = null;
+                }
+                msgList?.get_children().forEach(msg => {
+                    this.applyMenuClass(msg.child, add);
                 });
-                this.msgLists[idx] = msgList;
-            }
-            else if(!add && this.msgListIds[idx]) {
-                msgList?.disconnect(this.msgListIds[idx]);
-                this.msgListIds[idx] = null;
-                this.msgLists[idx] = null;
-            }
-            msgList?.get_children().forEach(msg => {
-                this.applyMenuClass(msg.child, add);
             });
-        });
+        } catch(e) {
+            console.log('Openbar: Error applying section styles: ' + e);
+        }
     }
 
     // Go through each panel button's menu to add/remove openmenu class to its children
