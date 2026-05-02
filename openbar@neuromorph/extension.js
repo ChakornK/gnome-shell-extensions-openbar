@@ -432,16 +432,24 @@ export default class Openbar extends Extension {
     // Go through each panel button's menu to add/remove openmenu class to its children
     applyMenuStyles(panel, add) {
         for(const box of this.panelBoxes) {
-            for(const btn of box) { // btn is a bin, parent of indicator button
-                if(btn.child instanceof PanelMenu.Button || btn.child instanceof PanelMenu.ButtonBox) { // btn.child is the indicator
-
-                    // box pointer case, to update -arrow-rise for bottom panel
-                    if(btn.child.menu?._boxPointer) {
-                        this.applyMenuClass(btn.child.menu._boxPointer, add);
+            for(const btn of box) {
+                if(btn.child instanceof PanelMenu.Button || btn.child instanceof PanelMenu.ButtonBox) {
+                    try {
+                        this._applyButtonMenuStyles(btn, add);
+                    } catch(e) {
+                        console.log('Openbar: Error styling menu button: ' + e);
                     }
+                }
+            }
+        }
+    }
 
-                    // special case for Quick Settings Audio Panel, because it changes the layout of the Quick Settings menu
-                    if(btn.child.menu?.constructor.name == "PanelGrid") {
+    _applyButtonMenuStyles(btn, add) {
+        if(btn.child.menu?._boxPointer) {
+            this.applyMenuClass(btn.child.menu._boxPointer, add);
+        }
+
+                if(btn.child.menu?.constructor.name == "PanelGrid") {
                         for(const panel of btn.child.menu._get_panels()) {
                             this.applyBoxStyles(panel, add);
                         }
@@ -467,13 +475,9 @@ export default class Openbar extends Extension {
                         // DateMenu: Notifications (messages and media), DND and Clear buttons
                         // Calendar Grid, Events, World Clock, Weather
                         if(btn.child.constructor.name === 'DateMenuButton') {
-                            this.applyDateMenuStyles(btn.child, add);
-                        }
-
-                    }
-                }
-            }
+        this.applyDateMenuStyles(btn.child, add);
         }
+    }
 
     applyDateMenuStyles(dateMenuBtn, add) {
         try {
