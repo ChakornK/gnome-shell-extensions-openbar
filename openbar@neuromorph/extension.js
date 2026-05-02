@@ -22,10 +22,20 @@
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Gio from 'gi://Gio';
-import GdkPixbuf from 'gi://GdkPixbuf';
 import Meta from 'gi://Meta';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
+
+let GdkPixbuf, Gdk;
+try {
+    GdkPixbuf = (await import('gi://GdkPixbuf')).default;
+} catch (e) {
+    try {
+        Gdk = (await import('gi://Gdk')).default;
+    } catch (e2) {
+        console.log('Openbar: Neither GdkPixbuf nor Gdk available for image loading');
+    }
+}
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Calendar from 'resource:///org/gnome/shell/ui/calendar.js';
@@ -103,52 +113,147 @@ export default class Openbar extends Extension {
     getPaletteFromImage(pictureUri) {
         let pictureFile = Gio.File.new_for_uri(pictureUri);
 
-        // Load the image into a pixbuf
+        if (GdkPixbuf) {
+            return this._getPaletteFromGdkPixbuf(pictureFile);
+        } else if (Gdk) {
+            return this._getPaletteFromGdkTexture(pictureFile);
+        } else {
+            console.log('Openbar: No image loading library available');
+            return [null, null];
+        }
+    }
+
+    _getPaletteFromGdkPixbuf(pictureFile) {
         let pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(pictureFile.get_path(), 1000, -1);
         let nChannels = pixbuf.n_channels;
 
-        // Get the width, height and pixel count of the image
         let width = pixbuf.get_width();
         let height = pixbuf.get_height();
         let pixelCount = width*height;
         let offset = 1;
 
-        // Get the pixel data as an array of bytes
         let pixels = pixbuf.get_pixels();
 
         let pixelArray = [];
-        // Loop through the pixels and get the rgba values
         for (let i = 0, index, r, g, b, a; i < pixelCount; i = i + offset) {
             index = i * nChannels;
 
-            // Get the red, green, blue, and alpha values
             r = pixels[index];
             g = pixels[index + 1];
             b = pixels[index + 2];
 
             a = nChannels==4? pixels[index + 3] : undefined;
 
-            // Save pixles that are not transparent and not full white/black
             if (typeof a === 'undefined' || a >= 125) {
                 if (!(r > 250 && g > 250 && b > 250) && !(r < 5 && g < 5 && b < 5)) {
                     pixelArray.push([r, g, b]);
-                    // pixelArray.push(Material.argbFromRgb(r, g, b));
                 }
             }
         }
-        // console.log('pixelCount, pixelarray len ', pixelCount, pixelArray.length);
 
-        // Generate color palette of 12 colors using Quantize to possibly get all colors for color-button
         const cmap12 = Quantize.quantize(pixelArray, 12);
         const palette12 = cmap12? cmap12.palette() : null;
         const count12 = cmap12? cmap12.colorCounts() : null;
 
-        // Sort palette12 and count12 arrays by count descending
         palette12?.sort((a, b) => count12[palette12.indexOf(b)] - count12[palette12.indexOf(a)]);
         count12?.sort((a, b) => b - a);
-        // console.log('palette12 sorted ', palette12, 'count12 sorted ', count12);
 
         return [palette12, count12];
+    }
+
+    _getPaletteFromGdkTexture(pictureFile) {
+        const texture = Gdk.Texture.new_from_file(pictureFile);
+        const bytes = texture.save_to_tiff_bytes();
+        const data = bytes.toArray();
+
+        const width = texture.get_width();
+        const height = texture.get_height();
+        const pixelCount = width * height;
+        const offset = 1;
+
+        const tiffHeaderSize = this._skipTiffHeader(data);
+        const pixelData = data.slice(tiffHeaderSize);
+
+        let pixelArray = [];
+        const channels = 4;
+        for (let i = 0, index, r, g, b, a; i < pixelCount; i = i + offset) {
+            index = i * channels;
+
+            if (index + 3 >= pixelData.length)
+                break;
+
+            r = pixelData[index];
+            g = pixelData[index + 1];
+            b = pixelData[index + 2];
+            a = pixelData[index + 3];
+
+            if (a >= 125) {
+                if (!(r > 250 && g > 250 && b > 250) && !(r < 5 && g < 5 && b < 5)) {
+                    pixelArray.push([r, g, b]);
+                }
+            }
+        }
+
+        const cmap12 = Quantize.quantize(pixelArray, 12);
+        const palette12 = cmap12? cmap12.palette() : null;
+        const count12 = cmap12? cmap12.colorCounts() : null;
+
+        palette12?.sort((a, b) => count12[palette12.indexOf(b)] - count12[palette12.indexOf(a)]);
+        count12?.sort((a, b) => b - a);
+
+        return [palette12, count12];
+    }
+
+    _skipTiffHeader(data) {
+        if (data[0] !== 0x49 && data[0] !== 0x4D)
+            return 0;
+
+        const isLittleEndian = data[0] === 0x49;
+        const readU16 = (offset) => {
+            return isLittleEndian
+                ? data[offset] | (data[offset + 1] << 8)
+                : (data[offset] << 8) | data[offset + 1];
+        };
+        const readU32 = (offset) => {
+            return isLittleEndian
+                ? data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24)
+                : (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3];
+        };
+
+        const ifdOffset = readU32(4);
+        const numEntries = readU16(ifdOffset);
+
+        let stripOffsets = null;
+        let stripByteCounts = null;
+        let rowsPerStrip = null;
+
+        for (let i = 0; i < numEntries; i++) {
+            const entryOffset = ifdOffset + 2 + i * 12;
+            if (entryOffset + 12 > data.length)
+                break;
+            const tag = readU16(entryOffset);
+            const type = readU16(entryOffset + 2);
+            const count = readU32(entryOffset + 4);
+
+            if (tag === 273) {
+                if (count === 1 && (type === 3 || type === 4))
+                    stripOffsets = type === 3 ? readU16(entryOffset + 8) : readU32(entryOffset + 8);
+                else if (count > 1)
+                    stripOffsets = readU32(entryOffset + 8);
+            } else if (tag === 278) {
+                rowsPerStrip = type === 3 ? readU16(entryOffset + 8) : readU32(entryOffset + 8);
+            } else if (tag === 279) {
+                if (count === 1 && (type === 3 || type === 4))
+                    stripByteCounts = type === 3 ? readU16(entryOffset + 8) : readU32(entryOffset + 8);
+                else if (count > 1)
+                    stripByteCounts = readU32(entryOffset + 8);
+            }
+        }
+
+        if (stripOffsets !== null)
+            return stripOffsets;
+
+        return 0;
     }
 
     backgroundPalette() {
