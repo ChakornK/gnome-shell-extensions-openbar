@@ -1295,7 +1295,7 @@ class OpenbarPrefs {
             valign: Gtk.Align.CENTER,
             halign: Gtk.Align.END
         });
-        resetFontBtn.get_style_context().add_class('circular');
+        resetFontBtn.add_css_class('circular');
         resetFontBtn.connect('clicked', () => {
             obar._settings.reset('font');
             fontBtn.set_font(obar._settings.get_string('default-font'));
